@@ -633,23 +633,29 @@ define(function (require, exports, module) {
                 getDocumentForPath._pendingDocumentPromises[fullPath] = promise;
 
                 fileEntry = new NativeFileSystem.FileEntry(fullPath);
-                FileUtils.readAsText(fileEntry)
-                    .always(function () {
-                        // document is no longer pending
-                        delete getDocumentForPath._pendingDocumentPromises[fullPath];
-                    })
-                    .done(function (rawText, readTimestamp) {
-                        doc = new DocumentModule.Document(fileEntry, readTimestamp, rawText);
-                        result.resolve(doc);
-                    })
-                    .fail(function (fileError) {
-                        result.reject(fileError);
-                    });
-            }
+                var mode = LanguageManager.getLanguageForPath(fullPath);
+                if (mode.getId() === "image") {
+                    var fileError = {name: "Cannot get document for image."};
+                    result.reject(fileError);
+                } else {
+              
+                    FileUtils.readAsText(fileEntry)
+                        .always(function () {
+                          // document is no longer pending
+                            delete getDocumentForPath._pendingDocumentPromises[fullPath];
+                        })
+                        .done(function (rawText, readTimestamp) {
+                            doc = new DocumentModule.Document(fileEntry, readTimestamp, rawText);
+                            result.resolve(doc);
+                        })
+                        .fail(function (fileError) {
+                            result.reject(fileError);
+                        });
+                }
             
+            }
             // This is a good point to clean up any old dangling Documents
             result.done(_gcDocuments);
-            
             return promise;
         }
     }
